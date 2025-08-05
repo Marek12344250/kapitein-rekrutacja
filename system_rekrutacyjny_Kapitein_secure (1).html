@@ -1,0 +1,174 @@
+
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="UTF-8">
+  <title>System Rekrutacyjny - Kapitein Personeel</title>
+  <style>
+    body {{ font-family: Arial, sans-serif; background: #f8f9fa; margin: 0; padding: 0; }}
+    .container {{ max-width: 960px; margin: 0 auto; padding: 20px; }}
+    header {{ text-align: center; background: #fff; padding: 20px 0; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }}
+    header img {{ max-width: 220px; }}
+    h1 {{ margin-top: 10px; }}
+    .hidden {{ display: none; }}
+    .login-screen {{
+      display: flex; flex-direction: column; align-items: center;
+      justify-content: center; height: 100vh; background: #e9ecef;
+    }}
+    input[type="password"], input[type="text"], input[type="date"], select, textarea {{
+      padding: 10px; width: 100%; margin: 6px 0; box-sizing: border-box;
+      border-radius: 4px; border: 1px solid #ccc;
+    }}
+    button {{
+      padding: 10px 20px; background: #007bff; color: white;
+      border: none; border-radius: 4px; cursor: pointer;
+    }}
+    button:hover {{ background: #0056b3; }}
+    table {{ width: 100%; border-collapse: collapse; margin-top: 20px; }}
+    th, td {{ border: 1px solid #dee2e6; padding: 8px; text-align: left; }}
+    th {{ background-color: #f1f3f5; }}
+    .actions button {{ margin-right: 5px; }}
+  </style>
+</head>
+<body>
+
+<div class="login-screen" id="loginScreen">
+  <img src="Kapitein-personeel-logo.png" alt="Logo Kapitein" />
+  <h2>Wprowadź kod dostępu</h2>
+  <input type="password" id="accessCode" placeholder="Hasło dostępu" />
+  <button onclick="checkAccess()">Zaloguj</button>
+  <p id="error" style="color: red; display: none;">Nieprawidłowe hasło. Spróbuj ponownie.</p>
+</div>
+
+<div class="container hidden" id="mainContent">
+  <header>
+    <img src="Kapitein-personeel-logo.png" alt="Kapitein Logo" />
+    <h1>System Rekrutacyjny</h1>
+  </header>
+  <form id="form">
+    <input type="hidden" id="editIndex" />
+    <input type="text" id="imie" placeholder="Imię" required />
+    <input type="text" id="nazwisko" placeholder="Nazwisko" required />
+    <input type="date" id="dataUrodzenia" />
+    <input type="text" id="telefon" placeholder="Telefon" />
+    <input type="text" id="adres" placeholder="Adres zamieszkania" />
+    <input type="text" id="stanowisko" placeholder="Stanowisko" />
+    <select id="kraj">
+      <option value="Polska">Polska</option>
+      <option value="Holandia">Holandia</option>
+    </select>
+    <input type="text" id="numerA1" placeholder="Numer A1" />
+    <input type="date" id="dataStart" />
+    <input type="date" id="dataKoniec" />
+    <textarea id="uwagi" placeholder="Uwagi" rows="2"></textarea>
+    <button type="submit">Zapisz kandydata</button>
+  </form>
+
+  <button onclick="usunWszystko()" style="margin-top:15px;background:#dc3545;">🗑️ Usuń wszystkie dane</button>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Imię i Nazwisko</th>
+        <th>Stanowisko</th>
+        <th>Kraj</th>
+        <th>Okres</th>
+        <th>Akcje</th>
+      </tr>
+    </thead>
+    <tbody id="tabela"></tbody>
+  </table>
+</div>
+
+<script>
+  const correctPassword = "kapitein2025";
+  let kandydaci = JSON.parse(localStorage.getItem("kandydaciKapitein")) || [];
+
+  function checkAccess() {{
+    const input = document.getElementById("accessCode").value;
+    if (input === correctPassword) {{
+      document.getElementById("loginScreen").classList.add("hidden");
+      document.getElementById("mainContent").classList.remove("hidden");
+      renderujTabele();
+    }} else {{
+      document.getElementById("error").style.display = "block";
+    }}
+  }}
+
+  function zapiszDoLocalStorage() {{
+    localStorage.setItem("kandydaciKapitein", JSON.stringify(kandydaci));
+  }}
+
+  function renderujTabele() {{
+    const tabela = document.getElementById("tabela");
+    tabela.innerHTML = "";
+    kandydaci.forEach((p, i) => {{
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td>${{p.imie}} ${{p.nazwisko}}</td>
+        <td>${{p.stanowisko}}</td>
+        <td>${{p.kraj}}</td>
+        <td>${{p.dataStart}} - ${{p.dataKoniec}}</td>
+        <td class="actions">
+          <button onclick="edytuj(${i})">Edytuj</button>
+          <button onclick="usun(${i})">Usuń</button>
+        </td>
+      `;
+      tabela.appendChild(tr);
+    }});
+  }}
+
+  document.getElementById("form").addEventListener("submit", function(e) {{
+    e.preventDefault();
+    const nowy = {{
+      imie: form.imie.value,
+      nazwisko: form.nazwisko.value,
+      dataUrodzenia: form.dataUrodzenia.value,
+      telefon: form.telefon.value,
+      adres: form.adres.value,
+      stanowisko: form.stanowisko.value,
+      kraj: form.kraj.value,
+      numerA1: form.numerA1.value,
+      dataStart: form.dataStart.value,
+      dataKoniec: form.dataKoniec.value,
+      uwagi: form.uwagi.value
+    }};
+    const index = form.editIndex.value;
+    if (index) {{
+      kandydaci[index] = nowy;
+      form.editIndex.value = "";
+    }} else {{
+      kandydaci.push(nowy);
+    }}
+    zapiszDoLocalStorage();
+    renderujTabele();
+    form.reset();
+  }});
+
+  function edytuj(index) {{
+    const p = kandydaci[index];
+    for (let key in p) {{
+      if (form[key]) form[key].value = p[key];
+    }}
+    form.editIndex.value = index;
+  }}
+
+  function usun(index) {{
+    if (confirm("Czy na pewno chcesz usunąć tego kandydata?")) {{
+      kandydaci.splice(index, 1);
+      zapiszDoLocalStorage();
+      renderujTabele();
+    }}
+  }}
+
+  function usunWszystko() {{
+    if (confirm("Czy na pewno chcesz usunąć wszystkie dane?")) {{
+      kandydaci = [];
+      zapiszDoLocalStorage();
+      renderujTabele();
+    }}
+  }}
+</script>
+
+</body>
+</html>
